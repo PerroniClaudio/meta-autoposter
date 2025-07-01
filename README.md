@@ -103,12 +103,12 @@ Copia i valori ottenuti nel tuo file `.env`:
 
 ```bash
 # Meta App Configuration
-META_APP_ID=1961335811269375
-META_APP_SECRET=d2e39128f4fe6db953e54a0dc88b733c
-META_ACCESS_TOKEN=EAAb30xRQ4v8BO2V1QXYz8oFXZBSnJ5uSfbqjapJckMaj04W0go1CprKsVYPcqNZBOpLV2OSiZBfkyRBI8qgRe5Nw2aVbwQ85v1lfJ5RVzXHUqpzb8xx87RxpngGmeRejB83VewHV8NCJkZCLpXQ6Ug3RgQscMMJGF26HVEz1OSaX7Vg6gQQYaouU1jCBBtmZBZCtxCXlwhApSRdXyILbDZBS05q
+META_APP_ID=your_app_id_here
+META_APP_SECRET=your_app_secret_here
+META_ACCESS_TOKEN=your_access_token_here
 
 # Facebook Page
-FACEBOOK_PAGE_ID=721065034421034
+FACEBOOK_PAGE_ID=your_page_id_here
 
 # Services Configuration
 FACEBOOK_APP_ID="${META_APP_ID}"
