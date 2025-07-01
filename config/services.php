@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'facebook' => [
+        'app_id' => env('META_APP_ID'),
+        'app_secret' => env('META_APP_SECRET'),
+        'page_id' => env('FACEBOOK_PAGE_ID'),
+        'token' => env('META_ACCESS_TOKEN'),
+        'default_graph_version' => env('FACEBOOK_DEFAULT_GRAPH_VERSION', 'v23.0'),
+        'redirect' => env('META_REDIRECT_URI', 'https://your-app.com/callback'),
+    ],
+
 ];
