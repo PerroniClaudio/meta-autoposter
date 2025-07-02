@@ -1,10 +1,6 @@
 # 📱 Meta AutoPoster - Guida Completa
 
-Siamo tutti d'accordo che Facebook è una piattaforma infernale, pertanto compilerò questa guida pratica per sopravvivere al labirinto delle API di Meta.
-
-## 🎥 Video Tutorial di Riferimento
-
-https://www.youtube.com/watch?v=3HvzgDzrG0c
+Questo progetto è un'implementazione Laravel per la pubblicazione automatica di contenuti su Pagine Facebook e Account Instagram Business tramite le API REST di Meta. La configurazione è semplificata per funzionare come un'applicazione di backend, senza flussi di login OAuth.
 
 ---
 
@@ -23,283 +19,177 @@ php artisan key:generate
 
 ---
 
-## 🔐 Configurazione Facebook/Meta API
+## 🔐 Configurazione delle API Meta
 
-### Step 1: Creare un'App Facebook
+Per far funzionare l'applicazione, devi ottenere alcune credenziali dalla piattaforma per sviluppatori di Meta.
 
-1. Vai su https://developers.facebook.com/
-2. Clicca su "My Apps" > "Create App"
-3. Seleziona "Business" come tipo di app
-4. Compila i dettagli dell'app
-5. Una volta creata, vai su "Settings" > "Basic"
+### Step 1: Creare un'App Meta
 
-**Ottieni questi valori:**
+1.  Vai su [Meta for Developers](https://developers.facebook.com/) e crea una nuova App di tipo **Business**.
+2.  Dal menu laterale, vai su **App Settings > Basic**.
+3.  Recupera i seguenti valori e inseriscili nel tuo file `.env`:
+    -   `META_APP_ID`
+    -   `META_APP_SECRET`
 
--   `META_APP_ID` = App ID
--   `META_APP_SECRET` = App Secret
+### Step 2: Aggiungere Prodotti e Permessi
 
-### Step 2: Configurare i Prodotti
-
-1. Nel dashboard dell'app, vai su "Products"
-2. Aggiungi questi prodotti:
-    - **Pages API**
-    - **Instagram API** (se necessario)
-
-### Step 3: Ottenere i Permessi
-
-Nel "App Review" richiedi questi permessi:
-
--   `pages_manage_posts` - Per creare post
--   `pages_read_engagement` - Per leggere metriche
--   `pages_show_list` - Per ottenere lista pagine
--   `business_management` (se necessario)
-
----
-
-## 🔑 Ottenere i Token di Accesso
-
-### Metodo Raccomandato: Graph API Explorer
-
-1. Vai su https://developers.facebook.com/tools/explorer/
-2. Seleziona la tua app
-3. Richiedi questi permessi:
-    - `pages_manage_posts`
-    - `pages_read_engagement`
-    - `pages_show_list`
-4. Clicca "Generate Access Token"
-5. **IMPORTANTE**: Converti in Long-Lived Token:
-    ```
-    GET https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id={META_APP_ID}&client_secret={META_APP_SECRET}&fb_exchange_token={SHORT_LIVED_TOKEN}
-    ```
-
----
-
-## 📄 Ottenere l'ID della Pagina Facebook
-
-### Metodo 1: Dall'URL della Pagina
-
-1. Vai sulla tua pagina Facebook
-2. Clicca su "About"
-3. Scorri fino in fondo, troverai "Page ID"
-
-### Metodo 2: Tramite API
-
-```bash
-curl -X GET "https://graph.facebook.com/me/accounts?access_token=YOUR_ACCESS_TOKEN"
-```
-
-### Metodo 3: Nel tuo Controller
-
-```php
-$facebookController = new FacebookController();
-$pages = $facebookController->getUserPages();
-```
-
----
-
----
-
-## 📸 Ottenere l'ID dell'Account Instagram Business
-
-L'ID dell'Account Instagram Business è un identificatore numerico univoco per il tuo profilo Instagram professionale. **Non è il tuo username (@tuonome) e non è l'ID della tua App Meta.** È fondamentale per utilizzare la Graph API di Instagram.
-
-Se riscontri problemi nel recuperarlo, la causa è quasi sempre legata ai permessi del token di accesso.
-
-### Metodo 1: Graph API Explorer (Consigliato)
-
-Questo è il metodo più diretto e affidabile.
-
-1.  Vai al [**Graph API Explorer di Meta**](https://developers.facebook.com/tools/explorer/).
-2.  A destra, nel menu a discesa **"Application"**, seleziona la tua app Meta.
-3.  Sotto, nel menu **"User or Page"**, seleziona **"Get Page Access Token"**.
-4.  Assicurati che la tua Pagina Facebook (quella collegata al tuo account Instagram) sia selezionata.
-5.  Clicca sulla tab **"Add a Permission"** e assicurati di avere selezionato **TUTTI** i seguenti permessi:
+1.  Nel pannello della tua app, vai su **Products**.
+2.  Aggiungi i seguenti prodotti:
+    -   **Instagram Graph API**
+    -   **Facebook Graph API** (solitamente già attiva)
+3.  Successivamente, devi ottenere un **Token di Accesso Utente** con i permessi corretti. Vai su **Tools > Graph API Explorer**.
+4.  Seleziona la tua App dal menu a discesa.
+5.  Nel menu "Permissions", aggiungi **tutti** i seguenti permessi:
     -   `pages_show_list`
     -   `pages_read_engagement`
+    -   `pages_manage_posts`
     -   `instagram_basic`
-    -   `business_management` (Spesso risolutivo per problemi di visibilità)
-6.  Clicca su **"Generate Access Token"**.
-7.  Nel campo della query, inserisci questa richiesta, sostituendo `{your-facebook-page-id}` con l'ID della tua Pagina Facebook:
-    ```
-    GET {your-facebook-page-id}?fields=instagram_business_account
-    ```
-8.  Clicca su **"Submit"**. La risposta sarà simile a questa:
+    -   `instagram_content_publish`
+    -   `business_management`
+6.  Clicca su **Generate Access Token**.
 
-    ```json
-    {
-        "instagram_business_account": {
-            "id": "17841405822333333" // <-- QUESTO È L'ID CHE CERCHI
-        },
-        "id": "721065034421034"
-    }
-    ```
+### Step 3: Ottenere un Token "Long-Lived"
 
-9.  Copia l'ID numerico (`1784...`) e inseriscilo nel tuo file `.env` come `INSTAGRAM_BUSINESS_ACCOUNT_ID`.
+Il token generato dura solo un'ora. Devi scambiarlo con uno a lunga durata (~60 giorni). Esegui questa chiamata (puoi usare il browser o Postman):
 
-### Metodo 2: Tramite il Controller
+```
+https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id={META_APP_ID}&client_secret={META_APP_SECRET}&fb_exchange_token={TOKEN_A_BREVE_DURATA}
+```
 
-Puoi usare il metodo helper già presente nel `FacebookController`.
+Il risultato conterrà un `access_token`. Copialo e incollalo nel tuo file `.env` come `META_ACCESS_TOKEN`.
 
-1.  Crea una rotta di test temporanea in `routes/web.php`:
-    ```php
-    Route::get('/get-ig-id', [App\Http\Controllers\FacebookController::class, 'getInstagramBusinessAccountId']);
-    ```
-2.  Visita `http://tuo-dominio.test/get-ig-id` nel browser.
-3.  La risposta JSON conterrà l'ID, se trovato.
+### Step 4: Ottenere gli ID Necessari
 
-### Metodo 3: Verifica in Meta Business Suite
+1.  **Facebook Page ID (`FACEBOOK_PAGE_ID`)**:
 
-Utile per confermare che il collegamento tra Pagina e Account Instagram sia corretto.
+    -   Vai sulla tua Pagina Facebook, nella sezione "About" > "Page transparency". L'ID è elencato lì.
 
-1.  Vai su [business.facebook.com/settings/](https://business.facebook.com/settings/).
-2.  Naviga in `Accounts` -> `Instagram accounts`.
-3.  Seleziona il tuo account Instagram e vai su **"Connected assets"** per verificare che la tua Pagina Facebook sia correttamente collegata.
+2.  **Instagram Business Account ID (`INSTAGRAM_BUSINESS_ACCOUNT_ID`)**:
+    -   Questo è l'ID più importante e difficile da trovare. Usa il **Graph API Explorer** (con il token che hai appena generato).
+    -   Esegui questa query, sostituendo `{FACEBOOK_PAGE_ID}` con l'ID della tua pagina collegata a Instagram:
+        ```
+        GET {FACEBOOK_PAGE_ID}?fields=instagram_business_account
+        ```
+    -   La risposta conterrà l'ID che ti serve.
 
 ---
 
-## ⚙️ Configurazione File .env
+## ⚙️ Configurazione File `.env`
 
-Copia i valori ottenuti nel tuo file `.env`:
+Il tuo file `.env` dovrebbe assomigliare a questo:
 
-```bash
-# Meta App Configuration
-META_APP_ID=your_app_id_here
-META_APP_SECRET=your_app_secret_here
-META_ACCESS_TOKEN=your_access_token_here
+```dotenv
+# --- META APP ---
+META_APP_ID=your_app_id
+META_APP_SECRET=your_app_secret
+META_ACCESS_TOKEN=your_long_lived_access_token
 
-# Facebook Page
-FACEBOOK_PAGE_ID=your_page_id_here
+# --- FACEBOOK ---
+FACEBOOK_PAGE_ID=your_facebook_page_id
 
-# Services Configuration
-FACEBOOK_APP_ID="${META_APP_ID}"
-FACEBOOK_APP_SECRET="${META_APP_SECRET}"
-FACEBOOK_TOKEN="${META_ACCESS_TOKEN}"
+# --- INSTAGRAM ---
+# L'ID e il Secret di Instagram sono spesso diversi da quelli di Meta.
+# Se sono uguali, puoi anche usare le variabili META_.
+INSTAGRAM_APP_ID=your_instagram_app_id
+INSTAGRAM_APP_SECRET=your_instagram_app_secret
+INSTAGRAM_BUSINESS_ACCOUNT_ID=your_instagram_business_account_id
 ```
 
 ---
 
-## 🛠️ Configurazione Laravel Services
+## 🚀 Come Pubblicare Contenuti
 
-Aggiungi in `config/services.php`:
+Tutta la logica di pubblicazione è gestita dai controller `FacebookController` e `InstagramController`. Puoi usarli nelle tue rotte, comandi o job.
+
+**Importante:** Per le immagini e i video, devi usare **URL pubblici e diretti**. I servizi che usano reindirizzamenti (come `picsum.photos`) non funzioneranno.
+
+### Esempi di utilizzo in `routes/web.php`
 
 ```php
-'facebook' => [
-    'app_id' => env('FACEBOOK_APP_ID'),
-    'app_secret' => env('FACEBOOK_APP_SECRET'),
-    'token' => env('FACEBOOK_TOKEN'),
-],
+use App\Http\Controllers\FacebookController;
+use App\Http\Controllers\InstagramController;
+use Illuminate\Support\Facades\Route;
+
+// --- Esempi per Facebook ---
+
+// Pubblicare un post di testo
+Route::get('/post-fb-text', function () {
+    $controller = new FacebookController();
+    return $controller->createPost(config('services.facebook.page_id'), 'Questo è un post di testo da Laravel!');
+});
+
+// Pubblicare una foto
+Route::get('/post-fb-photo', function () {
+    $controller = new FacebookController();
+    $imageUrl = 'https://i.imgur.com/1bX5QH6.jpg'; // URL diretto
+    return $controller->createPhotoPost(config('services.facebook.page_id'), $imageUrl, 'Didascalia della foto!');
+});
+
+
+// --- Esempi per Instagram ---
+
+// Pubblicare un'immagine
+Route::get('/post-ig-image', function () {
+    $controller = new InstagramController();
+    $imageUrl = 'https://i.imgur.com/1bX5QH6.jpg';
+    return $controller->createAndPublishImage($imageUrl, 'Didascalia per Instagram!');
+});
+
+// Pubblicare un video (richiede più tempo)
+Route::get('/post-ig-video', function () {
+    $controller = new InstagramController();
+    $videoUrl = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4';
+    return $controller->createAndPublishVideo($videoUrl, 'Un bel video da Laravel!');
+});
+
+// Pubblicare una Storia (immagine)
+Route::get('/post-ig-story', function () {
+    $controller = new InstagramController();
+    $imageUrl = 'https://i.imgur.com/1bX5QH6.jpg';
+    return $controller->createAndPublishStory($imageUrl, 'IMAGE');
+});
+
+// Pubblicare un Reel
+Route::get('/post-ig-reel', function () {
+    $controller = new InstagramController();
+    $videoUrl = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4';
+    return $controller->createAndPublishReel($videoUrl, 'Il mio primo Reel da API!', true);
+});
 ```
 
 ---
 
-## 🧪 Testing della Configurazione
+## 📚 Metodi Disponibili nei Controller
 
-### 1. Verifica le Pagine Disponibili
+### FacebookController
 
-```php
-$controller = new FacebookController();
-$pages = $controller->getUserPages();
-```
+-   `createPost($pageId, $message, $link = null)`: Crea un post di testo o con un link.
+-   `createPhotoPost($pageId, $imageUrl, $caption = null)`: Pubblica una foto da un URL.
 
-### 2. Verifica i Permessi
+### InstagramController
 
-```php
-$controller = new FacebookController();
-$permissions = $controller->checkPagePermissions('YOUR_PAGE_ID');
-```
-
-### 3. Crea un Post di Test
-
-```php
-$controller = new FacebookController();
-$result = $controller->createPageFeedPost('YOUR_PAGE_ID', 'Test post from Laravel!');
-```
-
----
-
-## 🚨 Troubleshooting Comune
-
-### Errore "(#100) Only owners of the URL..."
-
--   **Causa**: Stai cercando di personalizzare metadati per URL esterni
--   **Soluzione**: Non usare parametri `picture`, `name`, `thumbnail`, `description` per URL che non possiedi
-
-### Errore "Invalid OAuth Access Token"
-
--   **Causa**: Token scaduto o non valido
--   **Soluzione**: Rigenera un Long-Lived Access Token
-
-### Errore "Insufficient Permissions"
-
--   **Causa**: L'app non ha i permessi necessari
--   **Soluzione**: Verifica i permessi in App Review
-
-### Errore "Page Access Token Not Found"
-
--   **Causa**: Non hai accesso amministrativo alla pagina
--   **Soluzione**: Assicurati di essere admin della pagina Facebook
-
----
-
-## 📚 Metodi Disponibili nel Controller
-
-### 📄 Gestione Feed
-
--   `getPageFeed($pageId)` - Ottieni il feed della pagina
--   `createPageFeedPost($pageId, $message)` - Crea un post
--   `createPageFeedPostWithImage($pageId, $message, $callToAction)` - Post con CTA
-
-### 📸 Gestione Foto
-
--   `getPagePhotos($pageId)` - Ottieni le foto della pagina
--   `createPagePhoto($pageId, $imageUrl)` - Carica una foto
-
-### 👥 Gestione Pagina
-
--   `getUserPages()` - Ottieni tutte le tue pagine
--   `getPageRoles($pageId)` - Ottieni i ruoli della pagina
--   `checkPagePermissions($pageId)` - Verifica i permessi
-
-### 🔧 Helper Methods
-
--   `getPageAccessToken($pageId)` - Ottieni token specifico della pagina
--   `setPageAccessToken($pageId)` - Imposta token per la pagina
--   `createProductCarousel($pageId, $message, $products)` - Crea carousel prodotti
+-   `createAndPublishImage($imageUrl, $caption = '')`: Pubblica un'immagine.
+-   `createAndPublishVideo($videoUrl, $caption = '')`: Pubblica un video.
+-   `createAndPublishStory($mediaUrl, $mediaType = 'IMAGE')`: Pubblica una Storia (immagine o video).
+-   `createAndPublishReel($videoUrl, $caption = '', $shareToFeed = false)`: Pubblica un Reel, con opzione per condividerlo nel feed.
 
 ---
 
 ## 📝 Log e Debugging
 
-I log sono configurati per essere salvati in `storage/logs/laravel.log`.
-
-Visualizza i log in tempo reale:
+Ogni operazione viene registrata in `storage/logs/laravel.log`. Per monitorare le attività in tempo reale:
 
 ```bash
 tail -f storage/logs/laravel.log
 ```
 
-Cerca log specifici:
-
-```bash
-grep "Creating post" storage/logs/laravel.log
-```
-
 ---
 
-## 🔄 Rinnovo Token
+## 🚨 Troubleshooting
 
-I Long-Lived Access Token scadono dopo ~60 giorni. Per rinnovarli automaticamente, implementa un sistema di refresh o configura webhook per monitorare le scadenze.
-
----
-
-## 📞 Supporto
-
-Se incontri problemi:
-
-1. Controlla i log in `storage/logs/laravel.log`
-2. Verifica la configurazione in `config/services.php`
-3. Testa i permessi con `checkPagePermissions()`
-4. Consulta la [documentazione ufficiale di Meta](https://developers.facebook.com/docs/)
+-   **Errore di URL non valido**: Assicurati che gli URL di immagini e video siano diretti, pubblici e non utilizzino reindirizzamenti.
+-   **Errore di Permessi Insufficienti**: Verifica di aver concesso tutti i permessi elencati nello Step 2 e di usare un token di accesso valido.
+-   **Token Scaduto**: I token "Long-Lived" durano circa 60 giorni. Dovrai rigenerarli manualmente o implementare un job che gestisca il refresh.
 
 ---
 
