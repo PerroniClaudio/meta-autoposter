@@ -37,6 +37,35 @@ class FacebookController extends Controller {
         }
     }
 
+    public function getInstagramBusinessAccountId($pageId = null) {
+        $pageId = $pageId ?: config('services.facebook.page_id');
+        Log::info("Recupero l'ID Instagram Business per la pagina: {$pageId}");
+
+        try {
+            $page = new Page($pageId);
+            $response = $page->getSelf(['instagram_business_account']);
+            $data = $response->exportAllData();
+
+            if (isset($data['instagram_business_account']['id'])) {
+                $igBusinessAccountId = $data['instagram_business_account']['id'];
+                Log::info("ID Instagram Business trovato: {$igBusinessAccountId}");
+                return response()->json([
+                    'success' => true,
+                    'instagram_business_account_id' => $igBusinessAccountId,
+                ]);
+            }
+
+            Log::warning("Nessun account Instagram Business trovato per la pagina {$pageId}.", $data);
+            return response()->json([
+                'success' => false,
+                'message' => 'Nessun account Instagram Business collegato a questa pagina.',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Errore nel recuperare l'ID Instagram Business: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Crea un post nel feed di una pagina Facebook
      */

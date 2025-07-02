@@ -97,6 +97,66 @@ $pages = $facebookController->getUserPages();
 
 ---
 
+---
+
+## 📸 Ottenere l'ID dell'Account Instagram Business
+
+L'ID dell'Account Instagram Business è un identificatore numerico univoco per il tuo profilo Instagram professionale. **Non è il tuo username (@tuonome) e non è l'ID della tua App Meta.** È fondamentale per utilizzare la Graph API di Instagram.
+
+Se riscontri problemi nel recuperarlo, la causa è quasi sempre legata ai permessi del token di accesso.
+
+### Metodo 1: Graph API Explorer (Consigliato)
+
+Questo è il metodo più diretto e affidabile.
+
+1.  Vai al [**Graph API Explorer di Meta**](https://developers.facebook.com/tools/explorer/).
+2.  A destra, nel menu a discesa **"Application"**, seleziona la tua app Meta.
+3.  Sotto, nel menu **"User or Page"**, seleziona **"Get Page Access Token"**.
+4.  Assicurati che la tua Pagina Facebook (quella collegata al tuo account Instagram) sia selezionata.
+5.  Clicca sulla tab **"Add a Permission"** e assicurati di avere selezionato **TUTTI** i seguenti permessi:
+    -   `pages_show_list`
+    -   `pages_read_engagement`
+    -   `instagram_basic`
+    -   `business_management` (Spesso risolutivo per problemi di visibilità)
+6.  Clicca su **"Generate Access Token"**.
+7.  Nel campo della query, inserisci questa richiesta, sostituendo `{your-facebook-page-id}` con l'ID della tua Pagina Facebook:
+    ```
+    GET {your-facebook-page-id}?fields=instagram_business_account
+    ```
+8.  Clicca su **"Submit"**. La risposta sarà simile a questa:
+
+    ```json
+    {
+        "instagram_business_account": {
+            "id": "17841405822333333" // <-- QUESTO È L'ID CHE CERCHI
+        },
+        "id": "721065034421034"
+    }
+    ```
+
+9.  Copia l'ID numerico (`1784...`) e inseriscilo nel tuo file `.env` come `INSTAGRAM_BUSINESS_ACCOUNT_ID`.
+
+### Metodo 2: Tramite il Controller
+
+Puoi usare il metodo helper già presente nel `FacebookController`.
+
+1.  Crea una rotta di test temporanea in `routes/web.php`:
+    ```php
+    Route::get('/get-ig-id', [App\Http\Controllers\FacebookController::class, 'getInstagramBusinessAccountId']);
+    ```
+2.  Visita `http://tuo-dominio.test/get-ig-id` nel browser.
+3.  La risposta JSON conterrà l'ID, se trovato.
+
+### Metodo 3: Verifica in Meta Business Suite
+
+Utile per confermare che il collegamento tra Pagina e Account Instagram sia corretto.
+
+1.  Vai su [business.facebook.com/settings/](https://business.facebook.com/settings/).
+2.  Naviga in `Accounts` -> `Instagram accounts`.
+3.  Seleziona il tuo account Instagram e vai su **"Connected assets"** per verificare che la tua Pagina Facebook sia correttamente collegata.
+
+---
+
 ## ⚙️ Configurazione File .env
 
 Copia i valori ottenuti nel tuo file `.env`:

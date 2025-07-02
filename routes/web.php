@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\FacebookController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
+use FacebookAds\Object\Page;
 
 Route::get('/', function () {
     return view('welcome');
@@ -25,3 +27,6 @@ Route::get('/test-post', function () {
         ]
     );
 });
+
+Route::get('/instagram-id', FacebookController::class . '@getInstagramBusinessAccountId')
+    ->name('instagram.id');
