@@ -194,3 +194,11 @@ tail -f storage/logs/laravel.log
 ---
 
 **Buona fortuna nel navigare l'inferno di Facebook! 🔥**
+
+Siamo tutti d'accordo che Facebook è una piattaforma infernale, pertanto ho fatto questa guida pratica per sopravvivere al labirinto delle API di Meta.
+
+## 🎥 Video Tutorial di Riferimento
+
+https://www.youtube.com/watch?v=3HvzgDzrG0c
+
+---
