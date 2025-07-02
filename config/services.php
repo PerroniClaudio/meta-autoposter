@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -38,17 +37,13 @@ return [
     'facebook' => [
         'app_id' => env('META_APP_ID'),
         'app_secret' => env('META_APP_SECRET'),
+        'token' => env('FACEBOOK_TOKEN'),
         'page_id' => env('FACEBOOK_PAGE_ID'),
-        'token' => env('META_ACCESS_TOKEN'),
-        'default_graph_version' => env('FACEBOOK_DEFAULT_GRAPH_VERSION', 'v23.0'),
     ],
 
     'instagram' => [
-        'app_id' => env('INSTAGRAM_APP_ID'),
-        'app_secret' => env('INSTAGRAM_APP_SECRET'),
-        'access_token' => env('META_ACCESS_TOKEN'), // Stesso token di Facebook
+        'access_token' => env('INSTAGRAM_ACCESS_TOKEN', env('META_ACCESS_TOKEN')),
         'business_account_id' => env('INSTAGRAM_BUSINESS_ACCOUNT_ID'),
-        'default_graph_version' => env('INSTAGRAM_DEFAULT_GRAPH_VERSION', 'v23.0'),
+        'api_version' => env('INSTAGRAM_API_VERSION', 'v23.0'),
     ],
-
 ];

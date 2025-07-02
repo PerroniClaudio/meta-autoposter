@@ -13,77 +13,14 @@ class InstagramController extends Controller {
 
     public function __construct() {
         $this->accessToken = config('services.instagram.access_token');
-        $this->baseUrl = 'https://graph.facebook.com/v23.0';
+        $this->baseUrl = 'https://graph.facebook.com/' . config('services.instagram.api_version', 'v23.0');
         $this->instagramBusinessAccountId = config('services.instagram.business_account_id');
-    }
-
-    /**
-     * Ottiene informazioni sull'account Instagram Business
-     */
-    public function getAccountInfo() {
-        try {
-            Log::info("Getting Instagram account info for: " . $this->instagramBusinessAccountId);
-
-            $response = Http::get($this->baseUrl . '/' . $this->instagramBusinessAccountId, [
-                'fields' => 'id,username,account_type,media_count,followers_count,follows_count,name,profile_picture_url,website,biography',
-                'access_token' => $this->accessToken
-            ]);
-
-            if ($response->successful()) {
-                Log::info("Instagram account info retrieved successfully");
-                return response()->json([
-                    'success' => true,
-                    'data' => $response->json()
-                ]);
-            } else {
-                Log::error("Failed to get Instagram account info", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
-            }
-        } catch (\Exception $e) {
-            Log::error("ERROR getting Instagram account info: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Ottiene i media di un account Instagram
-     */
-    public function getMedia($limit = 25) {
-        try {
-            Log::info("Getting Instagram media, limit: $limit");
-
-            $response = Http::get($this->baseUrl . '/' . $this->instagramBusinessAccountId . '/media', [
-                'fields' => 'id,caption,media_type,media_url,permalink,thumbnail_url,timestamp,username,comments_count,like_count',
-                'limit' => $limit,
-                'access_token' => $this->accessToken
-            ]);
-
-            if ($response->successful()) {
-                Log::info("Instagram media retrieved successfully");
-                return response()->json([
-                    'success' => true,
-                    'data' => $response->json()
-                ]);
-            } else {
-                Log::error("Failed to get Instagram media", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
-            }
-        } catch (\Exception $e) {
-            Log::error("ERROR getting Instagram media: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
     }
 
     /**
      * Crea un container per un post immagine
      */
-    public function createImageContainer($imageUrl, $caption = '') {
+    private function createImageContainer($imageUrl, $caption = '') {
         try {
             Log::info("Creating Instagram image container with URL: $imageUrl");
 
@@ -96,28 +33,21 @@ class InstagramController extends Controller {
             if ($response->successful()) {
                 $data = $response->json();
                 Log::info("Instagram image container created with ID: " . $data['id']);
-                return response()->json([
-                    'success' => true,
-                    'container_id' => $data['id'],
-                    'data' => $data
-                ]);
+                return $data['id'];
             } else {
                 Log::error("Failed to create Instagram image container", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
+                return null;
             }
         } catch (\Exception $e) {
             Log::error("ERROR creating Instagram image container: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return null;
         }
     }
 
     /**
      * Crea un container per un post video
      */
-    public function createVideoContainer($videoUrl, $caption = '', $thumbnailUrl = null) {
+    private function createVideoContainer($videoUrl, $caption = '') {
         try {
             Log::info("Creating Instagram video container with URL: $videoUrl");
 
@@ -128,107 +58,92 @@ class InstagramController extends Controller {
                 'access_token' => $this->accessToken
             ];
 
-            if ($thumbnailUrl) {
-                $params['thumb_offset'] = 0; // Offset in millisecondi per il thumbnail
-            }
-
             $response = Http::post($this->baseUrl . '/' . $this->instagramBusinessAccountId . '/media', $params);
 
             if ($response->successful()) {
                 $data = $response->json();
                 Log::info("Instagram video container created with ID: " . $data['id']);
-                return response()->json([
-                    'success' => true,
-                    'container_id' => $data['id'],
-                    'data' => $data
-                ]);
+                return $data['id'];
             } else {
                 Log::error("Failed to create Instagram video container", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
+                return null;
             }
         } catch (\Exception $e) {
             Log::error("ERROR creating Instagram video container: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return null;
         }
     }
 
     /**
-     * Crea un container per un post carousel
+     * Crea un container per una Storia (immagine o video)
      */
-    public function createCarouselContainer($children, $caption = '') {
+    private function createStoryContainer($mediaUrl, $mediaType = 'IMAGE') {
         try {
-            Log::info("Creating Instagram carousel container with " . count($children) . " items");
-
-            $response = Http::post($this->baseUrl . '/' . $this->instagramBusinessAccountId . '/media', [
-                'media_type' => 'CAROUSEL',
-                'children' => implode(',', $children), // Array di container IDs
-                'caption' => $caption,
-                'access_token' => $this->accessToken
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                Log::info("Instagram carousel container created with ID: " . $data['id']);
-                return response()->json([
-                    'success' => true,
-                    'container_id' => $data['id'],
-                    'data' => $data
-                ]);
-            } else {
-                Log::error("Failed to create Instagram carousel container", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
-            }
-        } catch (\Exception $e) {
-            Log::error("ERROR creating Instagram carousel container: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Crea un item del carousel (per uso nei carousel)
-     */
-    public function createCarouselItem($imageUrl, $isVideo = false, $videoUrl = null) {
-        try {
-            Log::info("Creating Instagram carousel item");
+            Log::info("Creating Instagram Story container", ['url' => $mediaUrl, 'type' => $mediaType]);
 
             $params = [
-                'is_carousel_item' => true,
+                'media_type' => 'STORIES',
                 'access_token' => $this->accessToken
             ];
 
-            if ($isVideo && $videoUrl) {
-                $params['media_type'] = 'VIDEO';
-                $params['video_url'] = $videoUrl;
+            if (strtoupper($mediaType) === 'IMAGE') {
+                $params['image_url'] = $mediaUrl;
             } else {
-                $params['image_url'] = $imageUrl;
+                $params['video_url'] = $mediaUrl;
             }
 
             $response = Http::post($this->baseUrl . '/' . $this->instagramBusinessAccountId . '/media', $params);
 
             if ($response->successful()) {
                 $data = $response->json();
-                Log::info("Instagram carousel item created with ID: " . $data['id']);
-                return $data['id']; // Restituisce solo l'ID per l'uso nel carousel
+                Log::info("Instagram Story container created with ID: " . $data['id']);
+                return $data['id'];
             } else {
-                Log::error("Failed to create Instagram carousel item", $response->json());
+                Log::error("Failed to create Instagram Story container", $response->json());
                 return null;
             }
         } catch (\Exception $e) {
-            Log::error("ERROR creating Instagram carousel item: " . $e->getMessage());
+            Log::error("ERROR creating Instagram Story container: " . $e->getMessage());
             return null;
         }
     }
 
     /**
+     * Crea un container per un Reel
+     */
+    private function createReelContainer($videoUrl, $caption = '', $shareToFeed = false) {
+        try {
+            Log::info("Creating Instagram Reel container", ['url' => $videoUrl]);
+
+            $params = [
+                'media_type' => 'REELS',
+                'video_url' => $videoUrl,
+                'caption' => $caption,
+                'share_to_feed' => $shareToFeed,
+                'access_token' => $this->accessToken
+            ];
+
+            $response = Http::post($this->baseUrl . '/' . $this->instagramBusinessAccountId . '/media', $params);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                Log::info("Instagram Reel container created with ID: " . $data['id']);
+                return $data['id'];
+            } else {
+                Log::error("Failed to create Instagram Reel container", $response->json());
+                return null;
+            }
+        } catch (\Exception $e) {
+            Log::error("ERROR creating Instagram Reel container: " . $e->getMessage());
+            return null;
+        }
+    }
+
+
+    /**
      * Pubblica un container media
      */
-    public function publishMedia($containerId) {
+    private function publishMedia($containerId) {
         try {
             Log::info("Publishing Instagram media container: $containerId");
 
@@ -261,7 +176,7 @@ class InstagramController extends Controller {
     /**
      * Controlla lo status di un container
      */
-    public function checkContainerStatus($containerId) {
+    private function checkContainerStatus($containerId) {
         try {
             Log::info("Checking Instagram container status: $containerId");
 
@@ -271,22 +186,14 @@ class InstagramController extends Controller {
             ]);
 
             if ($response->successful()) {
-                $data = $response->json();
-                Log::info("Container status: " . ($data['status_code'] ?? 'unknown'));
-                return response()->json([
-                    'success' => true,
-                    'data' => $data
-                ]);
+                return $response->json();
             } else {
                 Log::error("Failed to check container status", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
+                return null;
             }
         } catch (\Exception $e) {
             Log::error("ERROR checking container status: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return null;
         }
     }
 
@@ -297,20 +204,14 @@ class InstagramController extends Controller {
         try {
             Log::info("Creating and publishing Instagram image post");
 
-            // Step 1: Crea il container
-            $containerResponse = $this->createImageContainer($imageUrl, $caption);
-            $containerData = json_decode($containerResponse->getContent(), true);
-
-            if (!$containerData['success']) {
-                return $containerResponse;
+            $containerId = $this->createImageContainer($imageUrl, $caption);
+            if (!$containerId) {
+                return response()->json(['success' => false, 'error' => 'Failed to create image container'], 400);
             }
 
-            $containerId = $containerData['container_id'];
+            // Attendi che il container sia pronto
+            sleep(5); // Aumentato per maggiore affidabilità
 
-            // Step 2: Attendi che il container sia pronto (opzionale)
-            sleep(2);
-
-            // Step 3: Pubblica il media
             return $this->publishMedia($containerId);
         } catch (\Exception $e) {
             Log::error("ERROR in createAndPublishImage: " . $e->getMessage());
@@ -321,38 +222,35 @@ class InstagramController extends Controller {
     /**
      * Helper method per creare e pubblicare un post video in un'unica operazione
      */
-    public function createAndPublishVideo($videoUrl, $caption = '', $thumbnailUrl = null) {
+    public function createAndPublishVideo($videoUrl, $caption = '') {
         try {
             Log::info("Creating and publishing Instagram video post");
 
-            // Step 1: Crea il container
-            $containerResponse = $this->createVideoContainer($videoUrl, $caption, $thumbnailUrl);
-            $containerData = json_decode($containerResponse->getContent(), true);
-
-            if (!$containerData['success']) {
-                return $containerResponse;
+            $containerId = $this->createVideoContainer($videoUrl, $caption);
+            if (!$containerId) {
+                return response()->json(['success' => false, 'error' => 'Failed to create video container'], 400);
             }
 
-            $containerId = $containerData['container_id'];
+            // I video richiedono più tempo per l'elaborazione
+            $attempts = 0;
+            $maxAttempts = 12; // 12 tentativi * 10 secondi = 2 minuti di attesa massima
+            $status = null;
 
-            // Step 2: Attendi che il video sia processato (i video richiedono più tempo)
-            sleep(10);
+            do {
+                sleep(10);
+                $status = $this->checkContainerStatus($containerId);
+                $attempts++;
+            } while ($attempts < $maxAttempts && $status && $status['status_code'] !== 'FINISHED');
 
-            // Step 3: Verifica lo status del container
-            $statusResponse = $this->checkContainerStatus($containerId);
-            $statusData = json_decode($statusResponse->getContent(), true);
-
-            if ($statusData['success'] && isset($statusData['data']['status_code'])) {
-                if ($statusData['data']['status_code'] !== 'FINISHED') {
-                    return response()->json([
-                        'success' => false,
-                        'error' => 'Video not ready for publishing',
-                        'status' => $statusData['data']
-                    ], 400);
-                }
+            if (!$status || $status['status_code'] !== 'FINISHED') {
+                Log::error('Video processing timed out or failed.', ['status' => $status]);
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Video not ready for publishing after ' . ($maxAttempts * 10) . ' seconds.',
+                    'status' => $status
+                ], 400);
             }
 
-            // Step 4: Pubblica il media
             return $this->publishMedia($containerId);
         } catch (\Exception $e) {
             Log::error("ERROR in createAndPublishVideo: " . $e->getMessage());
@@ -361,122 +259,75 @@ class InstagramController extends Controller {
     }
 
     /**
-     * Helper method per creare e pubblicare un carousel in un'unica operazione
+     * Helper method per creare e pubblicare una Storia (immagine o video)
      */
-    public function createAndPublishCarousel($items, $caption = '') {
+    public function createAndPublishStory($mediaUrl, $mediaType = 'IMAGE') {
         try {
-            Log::info("Creating and publishing Instagram carousel post with " . count($items) . " items");
+            Log::info("Creating and publishing Instagram Story");
 
-            // Step 1: Crea i container per ogni item del carousel
-            $carouselItemIds = [];
-
-            foreach ($items as $item) {
-                $isVideo = isset($item['video_url']) && !empty($item['video_url']);
-                $imageUrl = $item['image_url'] ?? '';
-                $videoUrl = $item['video_url'] ?? null;
-
-                $itemId = $this->createCarouselItem($imageUrl, $isVideo, $videoUrl);
-
-                if ($itemId) {
-                    $carouselItemIds[] = $itemId;
-                } else {
-                    return response()->json([
-                        'success' => false,
-                        'error' => 'Failed to create carousel item'
-                    ], 400);
-                }
+            $containerId = $this->createStoryContainer($mediaUrl, $mediaType);
+            if (!$containerId) {
+                return response()->json(['success' => false, 'error' => 'Failed to create Story container'], 400);
             }
 
-            // Step 2: Crea il container del carousel
-            $containerResponse = $this->createCarouselContainer($carouselItemIds, $caption);
-            $containerData = json_decode($containerResponse->getContent(), true);
+            // Attendi che il container sia pronto
+            $attempts = 0;
+            $maxAttempts = 12; // 1 minuto di attesa massima
+            $status = null;
 
-            if (!$containerData['success']) {
-                return $containerResponse;
+            do {
+                sleep(5);
+                $status = $this->checkContainerStatus($containerId);
+                $attempts++;
+            } while ($attempts < $maxAttempts && $status && $status['status_code'] !== 'FINISHED');
+
+            if (!$status || $status['status_code'] !== 'FINISHED') {
+                Log::error('Story processing timed out or failed.', ['status' => $status]);
+                return response()->json(['success' => false, 'error' => 'Story not ready for publishing.', 'status' => $status], 400);
             }
 
-            $containerId = $containerData['container_id'];
-
-            // Step 3: Attendi che il carousel sia pronto
-            sleep(3);
-
-            // Step 4: Pubblica il carousel
             return $this->publishMedia($containerId);
         } catch (\Exception $e) {
-            Log::error("ERROR in createAndPublishCarousel: " . $e->getMessage());
+            Log::error("ERROR in createAndPublishStory: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Ottiene insights di un media specifico
+     * Helper method per creare e pubblicare un Reel
      */
-    public function getMediaInsights($mediaId, $metrics = ['impressions', 'reach', 'engagement']) {
+    public function createAndPublishReel($videoUrl, $caption = '', $shareToFeed = false) {
         try {
-            Log::info("Getting Instagram media insights for: $mediaId");
+            Log::info("Creating and publishing Instagram Reel");
 
-            $response = Http::get($this->baseUrl . '/' . $mediaId . '/insights', [
-                'metric' => implode(',', $metrics),
-                'access_token' => $this->accessToken
-            ]);
+            $containerId = $this->createReelContainer($videoUrl, $caption, $shareToFeed);
+            if (!$containerId) {
+                return response()->json(['success' => false, 'error' => 'Failed to create Reel container'], 400);
+            }
 
-            if ($response->successful()) {
-                Log::info("Instagram media insights retrieved successfully");
-                return response()->json([
-                    'success' => true,
-                    'data' => $response->json()
-                ]);
-            } else {
-                Log::error("Failed to get Instagram media insights", $response->json());
+            // I Reel, essendo video, richiedono tempo per l'elaborazione
+            $attempts = 0;
+            $maxAttempts = 12; // 2 minuti di attesa massima
+            $status = null;
+
+            do {
+                sleep(10);
+                $status = $this->checkContainerStatus($containerId);
+                $attempts++;
+            } while ($attempts < $maxAttempts && $status && $status['status_code'] !== 'FINISHED');
+
+            if (!$status || $status['status_code'] !== 'FINISHED') {
+                Log::error('Reel processing timed out or failed.', ['status' => $status]);
                 return response()->json([
                     'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
+                    'error' => 'Reel not ready for publishing after ' . ($maxAttempts * 10) . ' seconds.',
+                    'status' => $status
+                ], 400);
             }
+
+            return $this->publishMedia($containerId);
         } catch (\Exception $e) {
-            Log::error("ERROR getting Instagram media insights: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Ottiene insights dell'account
-     */
-    public function getAccountInsights($metrics = ['impressions', 'reach', 'profile_views'], $period = 'day', $since = null, $until = null) {
-        try {
-            Log::info("Getting Instagram account insights");
-
-            $params = [
-                'metric' => implode(',', $metrics),
-                'period' => $period,
-                'access_token' => $this->accessToken
-            ];
-
-            if ($since) {
-                $params['since'] = $since;
-            }
-
-            if ($until) {
-                $params['until'] = $until;
-            }
-
-            $response = Http::get($this->baseUrl . '/' . $this->instagramBusinessAccountId . '/insights', $params);
-
-            if ($response->successful()) {
-                Log::info("Instagram account insights retrieved successfully");
-                return response()->json([
-                    'success' => true,
-                    'data' => $response->json()
-                ]);
-            } else {
-                Log::error("Failed to get Instagram account insights", $response->json());
-                return response()->json([
-                    'success' => false,
-                    'error' => $response->json()
-                ], $response->status());
-            }
-        } catch (\Exception $e) {
-            Log::error("ERROR getting Instagram account insights: " . $e->getMessage());
+            Log::error("ERROR in createAndPublishReel: " . $e->getMessage());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
