@@ -1,11 +1,22 @@
 <?php
 
-use App\Http\Controllers\FacebookController;
-use App\Http\Controllers\InstagramController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Log;
-use FacebookAds\Object\Page;
+use App\Http\Controllers\SanityWebhookController;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Nuova rotta per ricevere il webhook da Sanity
+Route::post('/webhooks/sanity', [SanityWebhookController::class, 'handle']);
